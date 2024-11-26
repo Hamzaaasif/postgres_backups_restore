@@ -1,0 +1,72 @@
+
+### PostgreSQL Backup and Restore Guide
+
+This document provides an explanation of the inputs and steps required for the backup and restore scripts (`backup.sh` and `restore.sh`).
+
+---
+
+#### **Backup Script (backup.sh)**
+
+**Purpose**: 
+The script allows you to perform either a full database backup or configure incremental backups using WAL archiving.
+
+**Inputs**:
+1. **PostgreSQL Host**: The hostname or IP address of the PostgreSQL server.
+2. **PostgreSQL Port**: The port on which PostgreSQL is running (default: 5432).
+3. **PostgreSQL Username**: The username for connecting to the database.
+4. **PostgreSQL Password**: The password for the specified username.
+5. **Database Name**: The name of the database to back up (for incremental backups, this is optional).
+6. **Backup Directory Path**: The location where the backup files will be saved.
+
+**Steps**:
+1. Prompts the user for database connection details and the backup directory.
+2. For a **Full Backup**:
+   - Uses `pg_basebackup` to create a full cluster backup.
+   - Stores the backup in a timestamped directory.
+3. For **Incremental Backup**:
+   - Configures WAL archiving by creating an archive directory.
+   - Guides the user to update `postgresql.conf` with WAL settings (`wal_level`, `archive_mode`, and `archive_command`).
+   - Ensures WAL files are stored for point-in-time recovery.
+4. Provides a menu to choose between full and incremental backups.
+
+**Output**:
+- Full backup files in the specified directory.
+- Configured WAL archiving setup for incremental backups.
+
+---
+
+#### **Restore Script (restore.sh)**
+
+**Purpose**: 
+The script restores a PostgreSQL database using a full backup and optionally replays WAL files for point-in-time recovery (PITR).
+
+**Inputs**:
+1. **Data Directory Path**: The PostgreSQL data directory where database files reside (e.g., `/var/lib/postgresql/17/main`).
+2. **Full Backup File Path**: The location of the tarball created during the full backup.
+3. **WAL Archive Directory Path**: The directory where archived WAL files are stored.
+4. **Recovery Target Time (Optional)**: A specific point in time (e.g., `2024-11-01 12:00:00`) for PITR.
+
+**Steps**:
+1. Stops the PostgreSQL service to prepare for restoration.
+2. Deletes the existing data directory to ensure a clean restoration.
+3. Extracts the full backup tarball into the PostgreSQL data directory.
+4. Copies WAL files from the archive directory to the `pg_wal` directory.
+5. Enables recovery mode by creating a `recovery.signal` file.
+6. Optionally sets a recovery target time for PITR in `postgresql.conf`.
+7. Restarts PostgreSQL to replay the WAL files and complete the restoration.
+
+**Output**:
+- Restored database to the latest consistent state or to a specific point in time.
+
+---
+
+### **Usage Tips**
+1. Make both scripts executable using:
+   ```bash
+   chmod +x backup.sh restore.sh
+   ```
+2. Run the scripts and follow the prompts for input.
+
+---
+
+These scripts are designed for PostgreSQL 17 and can be customized for other environments.
