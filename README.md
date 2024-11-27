@@ -82,10 +82,57 @@ Schedule a full backup weekly with pg_basebackup and let WAL archiving capture c
 
 Example cron job to run a full backup every Sunday at 2 AM:
 ```bash
-0 2 * * 0 pg_basebackup -D /path/to/backups/$(date +\%Y-\%m-\%d) -Ft -z -P -X stream
+*/10 * * * * pg_basebackup -D /path/to/backups/$(date +\%Y-\%m-\%d) -Ft -z -P -X stream
 ```
 
 ### Edit cron jobs with:
 ```bash 
 crontab -e
+```
+
+# STEP BY STEP PROCESS TO RESTORE WAL ARCHIVING - INCREMENTAL RECOVERY
+
+## Stop the Postgres Service
+```bash
+sudo systemctl stop postgresql
+```
+
+## Clear the data directory
+
+```bash
+sudo rm -rf /var/lib/postgresql/17/main
+```
+
+## Restore the full backup
+Extract the latest full backup
+```bash
+tar -xvf /path/to/backups/full-backup-YYYY-MM-DD.tar -C /var/lib/postgresql/17/main
+```
+## Add permission 
+```bash
+sudo chown -R postgres:postgres /var/lib/postgresql/17/main
+sudo chmod -R 700 /var/lib/postgresql/17/main
+```
+
+## Restore WAL files
+Copying WAL files from `/path/to/wal_archive` to `/var/lib/postgresql/17/main/pg_wal/`
+```bash
+sudo mkdir -p /var/lib/postgresql/17/main/pg_wal
+sudo cp /path/to/wal_archive/* /var/lib/postgresql/17/main/pg_wal/
+```
+
+## Enable recovery mode
+```bash
+sudo touch /var/lib/postgresql/17/main/recovery.signal
+```
+
+## Point-In-Time Recovery (Optional)
+Setting recovery target time in postgresql.conf...
+```bash
+echo "recovery_target_time = 26-11-2024_15-20-15" | sudo tee -a /var/lib/postgresql/17/main/postgresql.conf > /dev/null
+```
+
+## Start postgres
+```bash
+sudo systemctl start postgresql
 ```
